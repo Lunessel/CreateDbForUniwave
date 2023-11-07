@@ -97,7 +97,7 @@ def create_data(speciality, form_of_education):
     return data
 
 
-def parse_university(url, name_of_university):
+def parse_university(url, name_of_university, name_of_region):
     driver = webdriver.Firefox()
     driver.get(url)
 
@@ -170,7 +170,7 @@ def parse_university(url, name_of_university):
         data = create_data(speciality, "Дистанційна")
         res.append(data)
 
-    with open(f"{name_of_university}.json", "w", encoding='utf-8') as write_file:
+    with open(f"./{name_of_region}/{name_of_university}.json", "w", encoding='utf-8') as write_file:
         json.dump(res, write_file, ensure_ascii=False)  # , ensure_ascii=False is optional
 
     driver.close()
