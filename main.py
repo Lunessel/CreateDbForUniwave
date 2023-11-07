@@ -17,10 +17,7 @@ def get_university_by_region(region_name, url):
     content = driver.page_source
     soup = BeautifulSoup(content, features="html.parser")
 
-
     list_of_li = soup.find("ul", {"class": "section-search-result-list"}).find_all("li")
-
-
 
     for li in list_of_li:
         a = li.find("a")
@@ -31,7 +28,6 @@ def get_university_by_region(region_name, url):
         university_url = baseUrl + a['href'][1:]
 
         parse_university(university_url, university_name, region_name)
-
 
     driver.close()
 
@@ -57,15 +53,12 @@ def main():
     os.mkdir("Україна")
     os.chdir("./Україна")
 
-
     for region in regions:
         os.mkdir(region)
 
-    number_of_threads = 4
     items = list(regions.items())
 
-    for group in itertools.zip_longest(*[iter(items)] * number_of_threads):
-        print("group")
+    for group in itertools.zip_longest(*[iter(items)] * 3):
         threads = []
         for region, url in group:
             thread = threading.Thread(target=get_university_by_region, args=(region, url))

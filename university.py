@@ -1,5 +1,4 @@
 from selenium import webdriver
-from selenium.webdriver.common.by import By
 import json
 from bs4 import BeautifulSoup
 from lxml import html
@@ -113,13 +112,27 @@ def parse_university(url, name_of_university, name_of_region):
                         "row no-gutters table-of-specs-item-row qual1 base520 hidden",
                         "row no-gutters table-of-specs-item-row qual1 base620 hidden",
                         "row no-gutters table-of-specs-item-row qual2 base40 hidden",
-                        "row no-gutters table-of-specs-item-row qual2 base620 hidden"]
+                        "row no-gutters table-of-specs-item-row qual2 base620 hidden",
+                        "row no-gutters table-of-specs-item-row qual9 base40",
+                        "row no-gutters table-of-specs-item-row qual9 base40 hidden,"
+                        "row no-gutters table-of-specs-item-row qual9 base30 hidden",
+                        "row no-gutters table-of-specs-item-row qual9 base510 hidden",
+                        "row no-gutters table-of-specs-item-row qual9 base520 hidden",
+                        "row no-gutters table-of-specs-item-row qual9 base30",
+                        "row no-gutters table-of-specs-item-row qual9 base510",
+                        "row no-gutters table-of-specs-item-row qual9 base520"]
 
     name_of_zaoch_spec = ["row no-gutters table-of-specs-item-row qual1 base40 hidden",
                           "row no-gutters table-of-specs-item-row qual1 base520 hidden",
                           "row no-gutters table-of-specs-item-row qual1 base620 hidden",
                           "row no-gutters table-of-specs-item-row qual2 base40 hidden",
-                          "row no-gutters table-of-specs-item-row qual2 base620 hidden"]
+                          "row no-gutters table-of-specs-item-row qual2 base620 hidden",
+                          "row no-gutters table-of-specs-item-row qual9 base40",
+                          "row no-gutters table-of-specs-item-row qual9 base40 hidden",
+                          "row no-gutters table-of-specs-item-row qual9 base510 hidden",
+                          "row no-gutters table-of-specs-item-row qual9 base510",
+                          "row no-gutters table-of-specs-item-row qual9 base520 hidden",
+                          "row no-gutters table-of-specs-item-row qual9 base520"]
 
     name_of_distance_spec = ["row no-gutters table-of-specs-item-row qual1 base40 hidden",
                              "row no-gutters table-of-specs-item-row qual1 base520 hidden",
