@@ -1,10 +1,12 @@
+"""CopyRight"""
 from bardapi import Bard
 import time
 
 
-BARD_TOKEN = 'dAiEI6HoxzJKIz0d1FNXl_aZaEPJr54RSYr42aq-ZMyC9R-FS5WPGTV2LOFRbYHVIxNEsg.'
+BARD_TOKEN = 'dQiEI3U_PRyVULTAF5l3Yl9XspEyd_1cktFr7zeb-_zaf0TxID39TxtpWpT4j26JpzyTiw.'
 
-class WritePrompt(Bard):
+class PromptWriter(Bard):
+    """Here are all methods to write prompts"""
     def __init__(self) -> None:
         super().__init__(token=BARD_TOKEN)
 
@@ -25,8 +27,8 @@ class WritePrompt(Bard):
         return response['content']
     
     def write_second_prompt(self, specility, university) -> str:
-        second_prompt = (f"Can you add some additional information about {specility}"
-                          f"in {university}, that was not included above , which might be"
+        second_prompt = (f"Can you add some additional information about speciality - {specility}"
+                          f"in university - {university}, that was not included above , which might be"
                             "interesting for entrances or their parents. Response in Ukrainian")
         response = self.get_answer(second_prompt)
         time.sleep(3)
