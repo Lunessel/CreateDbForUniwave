@@ -5,17 +5,18 @@ from prompts import PromptWriter
 
 
 def process_folder(folder_path):
-    for root, dirs, files in os.walk(folder_path):
+    for root, dirs , files in os.walk(folder_path):
         for file_name in files:
             file_path = os.path.join(root, file_name)
             update_json(file_path, file_name)
 
 
 
+
 def update_json(file_path, file_name):
-    print(file_name.replace(".json", ""))
-    with open(file_path, 'r+', encoding='utf-8') as file:
-        data = json.loads(file.read())
+    print(file_path.replace(".json", ""))
+    with open(file_path, 'r+', encoding='utf-8') as file_path:
+        data = json.loads(file_path.read())
         user = PromptWriter()
 
         for specialty in data:
@@ -32,12 +33,12 @@ def update_json(file_path, file_name):
                 text_response_2 = user.write_second_prompt(university=file_name.replace(".json", ""), specility=specialty_name)
                 specialty["aditional_information"] = text_response_2
 
-            file.seek(0)
-            file.write(json.dumps(data, ensure_ascii=False, indent=4))
-            file.truncate()
-        file.close
+            file_path.seek(0)
+            file_path.write(json.dumps(data, ensure_ascii=False, indent=4))
+            file_path.truncate()
+        file_path.close
         print("Done, next -")
 
 if __name__ == "__main__":
-    folder_path = 'Ukraine_without_college' 
+    folder_path = "Львівська область" 
     process_folder(folder_path)

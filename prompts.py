@@ -3,7 +3,7 @@ from bardapi import Bard
 import time
 
 
-BARD_TOKEN = 'dQiEI3U_PRyVULTAF5l3Yl9XspEyd_1cktFr7zeb-_zaf0TxID39TxtpWpT4j26JpzyTiw.'
+BARD_TOKEN = 'dQiEI3IIK-D9C9Prql1I9wZLPO84M6yqK3J3F4dsfD5M-DC2B6VWRJSF6MYGx9zB_bTtSQ.'
 
 class PromptWriter(Bard):
     """Here are all methods to write prompts"""
