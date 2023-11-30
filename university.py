@@ -1,7 +1,7 @@
 from selenium import webdriver
-import json
 from bs4 import BeautifulSoup
 from lxml import html
+import mysql.connector
 
 
 def create_data(speciality, form_of_education):
@@ -50,7 +50,7 @@ def create_data(speciality, form_of_education):
     elif branch in health:
         major_branch = "Здоров’я та безпека"
     else:
-        print("Pizda" + branch)
+        print("Exception" + branch)
     number_of_spec = tree.xpath("//div/div[1]/div[2]/span/a[1]/text()")[0].split(' ')[0]
     education_list = tree.xpath('//span[@class="search"]/text()')
 
@@ -115,6 +115,12 @@ def create_data(speciality, form_of_education):
     except:
         pass
 
+    temp = ""
+
+    for i in specialitydic:
+        temp += f"{i}:{specialitydic[i]} "
+
+
     data = {
         "form_of_education": form_of_education,
         "educational_degree": educational_degree,
@@ -128,29 +134,23 @@ def create_data(speciality, form_of_education):
         "offer_type": offer_type,
         "start_time_of_study": start_time_of_study,
         "end_time_of_study": end_time_of_study,
-        "License_scope": license_scope,
+        "license_scope": license_scope,
         "contract": contract,
         "budget": budget,
-        "avgcontract": avg_contract,
-        "avgbudget": avg_budget,
-        "specialitydic": specialitydic,
+        "avg_contract": avg_contract,
+        "avg_budget": avg_budget,
+        "specialitydic": temp,
     }
     return data
 
 
-def parse_university(url, name_of_university, name_of_region):
-    if len(name_of_university) > 180:
-        name_of_university = name_of_university[0:160] + " ... "
-    name_of_university = name_of_university.replace('\"', '\'')
-
+def parse_university(url, name_of_university, i):
     driver = webdriver.Firefox()
     driver.get(url)
-
     content = driver.page_source
     soup = BeautifulSoup(content, features="html.parser")
 
     if content == '<html><head></head><body></body></html>':
-        print(name_of_university)
         driver.close()
         return
 
@@ -200,22 +200,53 @@ def parse_university(url, name_of_university, name_of_region):
         pass
 
     res = []
+
+    table_name = f"ID{i}"
+    mydb = mysql.connector.connect(
+        host="localhost",
+        user="root",
+        password="22060810D",
+        database="UniWave"
+    )
+    mycursor = mydb.cursor()
+
+    mycursor.execute(f"CREATE TABLE {table_name} (form_of_education VARCHAR(11), educational_degree VARCHAR(50),"
+                     f"branch VARCHAR(53),major_branch VARCHAR(1000), number_of_spec INT,name_of_spec VARCHAR(53),specialisation VARCHAR(29),"
+                     f"faculty VARCHAR(73), educational_program VARCHAR(85), offer_type VARCHAR(62),"
+                     f" start_time_of_study VARCHAR(10), end_time_of_study VARCHAR(10), License_scope VARCHAR(4),"
+                     f" contract VARCHAR(4), budget INT,avg_contract NUMERIC(5, 2),avg_budget NUMERIC(5, 2),"
+                     f"specialitydic VARCHAR(1000))"
+                     f"CHARSET=utf8")
+
     # Денна форма навчання
+
     for speciality in specialities_den:
         data = create_data(speciality, "Денна")
         res.append(data)
-
+        sql_table_insert(data, mycursor, table_name, mydb)
     # Заочна форма навчання
 
     for speciality in specialities_zaoch:
         data = create_data(speciality, "Заочна")
         res.append(data)
+        sql_table_insert(data, mycursor, table_name, mydb)
 
     for speciality in specialities_distance:
         data = create_data(speciality, "Дистанційна")
         res.append(data)
+        sql_table_insert(data, mycursor, table_name, mydb)
 
-    with open(f"./{name_of_region}/{name_of_university}.json", "w", encoding='utf-8') as write_file:
-        json.dump(res, write_file, ensure_ascii=False)  # , ensure_ascii=False is optional
 
     driver.close()
+    print(name_of_university + " : " + table_name)
+
+
+def sql_table_insert(data, mycursor, table_name, mydb):
+    mycursor.execute(f"INSERT INTO {table_name} (form_of_education, educational_degree, branch, major_branch,"
+                     f" number_of_spec, name_of_spec, specialisation, faculty, educational_program, offer_type,"
+                     f" start_time_of_study, end_time_of_study, license_scope, contract, budget, avg_contract,"
+                     f" avg_budget, specialitydic) VALUES ('{data['form_of_education']}', '{data['educational_degree']}', '{data['branch']}', '{data['major_branch']}',"
+                     f" '{data['number_of_spec']}', '{data['name_of_spec']}', '{data['specialisation']}', '{data['faculty']}', '{data['educational_program']}', '{data['offer_type']}',"
+                     f" '{data['start_time_of_study']}', '{data['end_time_of_study']}', '{data['license_scope']}', '{data['contract']}', '{data['budget']}', '{data['avg_contract']}',"
+                     f" '{data['avg_budget']}', '{data['specialitydic']}')")
+    mydb.commit()
