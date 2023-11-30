@@ -2,9 +2,6 @@ from selenium import webdriver
 from bs4 import BeautifulSoup
 import os
 import shutil
-import threading
-import itertools
-
 from university import parse_university
 
 baseUrl = "https://vstup.osvita.ua/"
@@ -42,7 +39,8 @@ def main():
     regions = {}
     for tr in trs:
         a = tr.find("td").find("a")
-        regions[a.text] = baseUrl + a['href'][1:]
+        if a.text in {"Львівська область"}:
+            regions[a.text] = baseUrl + a['href'][1:]
 
     try:
         shutil.rmtree('Україна')
@@ -53,19 +51,6 @@ def main():
 
     for region in regions:
         os.mkdir(region)
-
-    number_of_threads = 6
-    items = list(regions.items())
-
-    for group in itertools.zip_longest(*[iter(items)] * number_of_threads):
-        threads = []
-        for region, url in group:
-            thread = threading.Thread(target=get_university_by_region, args=(region, url))
-            threads.append(thread)
-            thread.start()
-        
-        for t in threads:
-            t.join()
 
     for region in regions:
         get_university_by_region(region, regions[region])

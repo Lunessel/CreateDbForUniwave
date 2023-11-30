@@ -13,8 +13,44 @@ def create_data(speciality, form_of_education):
     tree = html.fromstring(str(speciality))
     educational_degree = tree.xpath("//div/div[1]/div[2]/b[1]/text()")[0]
     educational_degree += tree.xpath("//div/div[1]/div[2]/text()[2]")[0]
-
-    branch = tree.xpath("//div/div[1]/div[2]/span/text()[2]")[0]
+    major_branch = None
+    tech = ["Аграрні науки та продовольство",
+            "Архітектура та будівництво",
+            "Біологія",
+            "Виробництво та технології",
+            "Електрична інженерія",
+            "Електроніка, автоматизація та електронні комунікації",
+            "Інформаційні технології",
+            "Математика та статистика",
+            "Механічна інженерія",
+            "Природничі науки",
+            "Транспорт",
+            "Хімічна інженерія та біоінженерія"]
+    social = ["Богослов’я",
+              "Гуманітарні науки",
+              "Журналістика",
+              "Культура і мистецтво",
+              "Міжнародні відносини",
+              "Освіта/Педагогіка",
+              "Право",
+              "Публічне управління та адміністрування",
+              "Соціальна робота",
+              "Соціальні та поведінкові науки",
+              "Управління та адміністрування"]
+    health = ["Ветеринарія",
+              "Охорона здоров’я",
+              "Цивільна безпека",
+              "Сфера обслуговування",
+              "Воєнні науки, національна безпека, безпека державного кордону"]
+    branch = tree.xpath("//div/div[1]/div[2]/span/text()[2]")[0][1::]
+    if branch in tech:
+        major_branch = "Природничі та технічні науки"
+    elif branch in social:
+        major_branch = "Соціальні науки та гуманітарні дисципліни"
+    elif branch in health:
+        major_branch = "Здоров’я та безпека"
+    else:
+        print("Pizda" + branch)
     number_of_spec = tree.xpath("//div/div[1]/div[2]/span/a[1]/text()")[0].split(' ')[0]
     education_list = tree.xpath('//span[@class="search"]/text()')
 
@@ -83,6 +119,7 @@ def create_data(speciality, form_of_education):
         "form_of_education": form_of_education,
         "educational_degree": educational_degree,
         "branch": branch,
+        "major_branch": major_branch,
         "number_of_spec": number_of_spec,
         "name_of_spec": name_of_spec,
         "specialisation": specialisation,
