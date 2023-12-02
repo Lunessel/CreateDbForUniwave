@@ -1,10 +1,13 @@
+import json
+
 from selenium import webdriver
 from bs4 import BeautifulSoup
 from lxml import html
-import mysql.connector
+import time
+from bardapi import Bard
 
 
-def create_data(speciality, form_of_education):
+def create_data(speciality, form_of_education, name_of_university):
     name_of_spec = "Null"
     specialisation = "Null"
     faculty = "Null"
@@ -63,6 +66,8 @@ def create_data(speciality, form_of_education):
         name_of_spec, specialisation, faculty, educational_program = education_list
     else:
         print("Error")
+    faculty = faculty.replace("\'", "`")
+    educational_program = educational_program.replace("\'", "`")
 
     offer_type = tree.xpath("//div/div[1]/div[2]/text()[5]")[0]
     offer_type += tree.xpath("//div/div[1]/div[2]/text()[6]")[0]
@@ -120,6 +125,25 @@ def create_data(speciality, form_of_education):
     for i in specialitydic:
         temp += f"{i}:{specialitydic[i]} "
 
+    token = "dwhqiOdazumEh2Dy31-WCh_LSE6rINCMH_k94o5nzqo6sLrhgq0nslCI2auDlmaF1VCK8w."
+
+    bard = Bard(token)
+
+    first_prompt = (f"Go to the website {name_of_university}, go to the section {faculty} and describe the specialty"
+                    f"{speciality}"
+                    "according to these criteria:"
+                    "1. Find and write a description of the specialty, indicate what a specialist in this profession does."
+                    "Submit it in a detailed, comprehensive format, make it simple"
+                    "2. Describe the educational program of the specialty, what subjects it includes"
+                    "and what the student will be able to study in general."
+                    "3. What is the perspective for the career of this specialist in Ukraine and the world?"
+                    "Do not go beyond the criterias, do not write a conclusion.  Provide information in a neutral format,"
+                    "'from a bird's eye view', without advertising the university, also make it interesting,"
+                    "oriented to applicants and their parents. Response in Ukrainian")
+    short_response = str(bard.get_answer(first_prompt)['content'])
+    short_response = short_response.replace('\'', '`')
+    short_response = short_response.replace('*', '')
+    time.sleep(3)
 
     data = {
         "form_of_education": form_of_education,
@@ -140,11 +164,13 @@ def create_data(speciality, form_of_education):
         "avg_contract": avg_contract,
         "avg_budget": avg_budget,
         "specialitydic": temp,
+        "short_response": short_response
     }
     return data
 
 
-def parse_university(url, name_of_university, i):
+def parse_university(url, name_of_university, i, db_decoder, mcursor, UniWave, region):
+
     driver = webdriver.Firefox()
     driver.get(url)
     content = driver.page_source
@@ -202,51 +228,51 @@ def parse_university(url, name_of_university, i):
     res = []
 
     table_name = f"ID{i}"
-    mydb = mysql.connector.connect(
-        host="localhost",
-        user="root",
-        password="22060810D",
-        database="UniWave"
-    )
-    mycursor = mydb.cursor()
 
-    mycursor.execute(f"CREATE TABLE {table_name} (form_of_education VARCHAR(11), educational_degree VARCHAR(50),"
-                     f"branch VARCHAR(53),major_branch VARCHAR(1000), number_of_spec INT,name_of_spec VARCHAR(53),specialisation VARCHAR(29),"
-                     f"faculty VARCHAR(73), educational_program VARCHAR(85), offer_type VARCHAR(62),"
-                     f" start_time_of_study VARCHAR(10), end_time_of_study VARCHAR(10), License_scope VARCHAR(4),"
-                     f" contract VARCHAR(4), budget INT,avg_contract NUMERIC(5, 2),avg_budget NUMERIC(5, 2),"
-                     f"specialitydic VARCHAR(1000))"
+    mcursor.execute(f"CREATE TABLE {table_name} (form_of_education VARCHAR(1000), educational_degree VARCHAR(1000),"
+                     f"branch VARCHAR(1000),major_branch VARCHAR(1000), number_of_spec VARCHAR(1000) ,"
+                     f"name_of_spec VARCHAR(1000),"
+                     f"specialisation VARCHAR(1000),"
+                     f"faculty VARCHAR(1000), educational_program VARCHAR(1000), offer_type VARCHAR(1000),"
+                     f" start_time_of_study VARCHAR(1000), end_time_of_study VARCHAR(1000),"
+                     f" License_scope VARCHAR(1000),"
+                     f" contract VARCHAR(1000), budget VARCHAR(1000),avg_contract NUMERIC(5, 2),"
+                     f"avg_budget NUMERIC(5, 2),"
+                     f"specialitydic VARCHAR(1000), short_response TEXT)"
                      f"CHARSET=utf8")
 
     # Денна форма навчання
 
     for speciality in specialities_den:
-        data = create_data(speciality, "Денна")
+        data = create_data(speciality, "Денна", name_of_university)
         res.append(data)
-        sql_table_insert(data, mycursor, table_name, mydb)
+        sql_table_insert(data, mcursor, table_name, UniWave)
     # Заочна форма навчання
 
     for speciality in specialities_zaoch:
-        data = create_data(speciality, "Заочна")
+        data = create_data(speciality, "Заочна", name_of_university)
         res.append(data)
-        sql_table_insert(data, mycursor, table_name, mydb)
+        sql_table_insert(data, mcursor, table_name, UniWave)
 
     for speciality in specialities_distance:
-        data = create_data(speciality, "Дистанційна")
+        data = create_data(speciality, "Дистанційна", name_of_university)
         res.append(data)
-        sql_table_insert(data, mycursor, table_name, mydb)
-
+        sql_table_insert(data, mcursor, table_name, UniWave)
 
     driver.close()
-    print(name_of_university + " : " + table_name)
+    db_decoder[table_name] = name_of_university
+    name_of_university = name_of_university.replace("\'", "")
+    mcursor.execute(f"INSERT INTO decoder (ID, NAME, REGION) VALUES ('{table_name}', '{name_of_university}', '{region}')")
+    UniWave.commit()
 
 
-def sql_table_insert(data, mycursor, table_name, mydb):
-    mycursor.execute(f"INSERT INTO {table_name} (form_of_education, educational_degree, branch, major_branch,"
+def sql_table_insert(data, mcursor, table_name, UniWave):
+    mcursor.execute(f"INSERT INTO {table_name} (form_of_education, educational_degree, branch, major_branch,"
                      f" number_of_spec, name_of_spec, specialisation, faculty, educational_program, offer_type,"
                      f" start_time_of_study, end_time_of_study, license_scope, contract, budget, avg_contract,"
-                     f" avg_budget, specialitydic) VALUES ('{data['form_of_education']}', '{data['educational_degree']}', '{data['branch']}', '{data['major_branch']}',"
+                     f" avg_budget, specialitydic, short_response) VALUES ('{data['form_of_education']}', '{data['educational_degree']}', '{data['branch']}', '{data['major_branch']}',"
                      f" '{data['number_of_spec']}', '{data['name_of_spec']}', '{data['specialisation']}', '{data['faculty']}', '{data['educational_program']}', '{data['offer_type']}',"
                      f" '{data['start_time_of_study']}', '{data['end_time_of_study']}', '{data['license_scope']}', '{data['contract']}', '{data['budget']}', '{data['avg_contract']}',"
-                     f" '{data['avg_budget']}', '{data['specialitydic']}')")
-    mydb.commit()
+                     f" '{data['avg_budget']}', '{data['specialitydic']}', '{data['short_response']}')")
+
+    UniWave.commit()

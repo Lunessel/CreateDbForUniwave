@@ -1,7 +1,5 @@
 from selenium import webdriver
 from bs4 import BeautifulSoup
-import os
-import shutil
 from university import parse_university
 import mysql.connector
 
@@ -13,20 +11,27 @@ UniWave = mysql.connector.connect(
   password="22060810D"
 )
 
-mycursor = UniWave.cursor()
-mycursor.execute("DROP DATABASE UniWave")
-mycursor.execute("CREATE DATABASE UniWave")
+mcursor = UniWave.cursor()
+mcursor.execute("DROP DATABASE UniWave")
+mcursor.execute("CREATE DATABASE UniWave")
 
-mycursor.execute("SHOW DATABASES")
-
-
-def get_university_by_region(url):
+def get_university_by_region(url, region):
     driver = webdriver.Firefox()
     driver.get(url)
     content = driver.page_source
     soup = BeautifulSoup(content, features="html.parser")
     i = 0
+    db_decoder = {}
     list_of_li = soup.find("ul", {"class": "section-search-result-list"}).find_all("li")
+    UniWave = mysql.connector.connect(
+        host="localhost",
+        user="root",
+        password="22060810D",
+        database="UniWave"
+    )
+    mcursor = UniWave.cursor()
+    mcursor.execute(f"CREATE TABLE decoder(ID VARCHAR(100), NAME VARCHAR(1000), REGION VARCHAR(1000))")
+
     for li in list_of_li:
         a = li.find("a")
         university_name = a.text
@@ -34,7 +39,7 @@ def get_university_by_region(url):
         university_url = baseUrl + a['href'][1:]
         i += 1
 
-        parse_university(university_url, university_name, i)
+        parse_university(university_url, university_name, i, db_decoder, mcursor, UniWave, region)
 
     driver.close()
 
@@ -51,21 +56,11 @@ def main():
     regions = {}
     for tr in trs:
         a = tr.find("td").find("a")
-        if a.text in {"Київ"}:
+        if a.text in {"Львівська область"}:
             regions[a.text] = baseUrl + a['href'][1:]
 
-    try:
-        shutil.rmtree('Україна')
-    except:
-        pass
-    os.mkdir("Україна")
-    os.chdir("./Україна")
-
     for region in regions:
-        os.mkdir(region)
-
-    for region in regions:
-        get_university_by_region(regions[region])
+        get_university_by_region(regions[region], region)
 
     driver.close()
 
