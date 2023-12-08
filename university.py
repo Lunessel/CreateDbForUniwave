@@ -1,18 +1,16 @@
-import json
-
 from selenium import webdriver
 from bs4 import BeautifulSoup
 from lxml import html
-import time
-from bardapi import Bard
+from selenium.webdriver.chrome.options import Options
+
+options = Options()
+options.add_argument('--headless')
 
 
-def create_data(speciality, form_of_education, name_of_university):
-    name_of_spec = "Null"
+def create_data(speciality, form_of_education):
     specialisation = "Null"
     faculty = "Null"
     educational_program = "Null"
-
     tree = html.fromstring(str(speciality))
     educational_degree = tree.xpath("//div/div[1]/div[2]/b[1]/text()")[0]
     educational_degree += tree.xpath("//div/div[1]/div[2]/text()[2]")[0]
@@ -56,7 +54,6 @@ def create_data(speciality, form_of_education, name_of_university):
         print("Exception" + branch)
     number_of_spec = tree.xpath("//div/div[1]/div[2]/span/a[1]/text()")[0].split(' ')[0]
     education_list = tree.xpath('//span[@class="search"]/text()')
-
     education_list = list(filter(lambda x: (x not in ['\n', ' ', '\xa0']), education_list))
     if len(education_list) == 2:
         name_of_spec, educational_program = education_list
@@ -66,17 +63,30 @@ def create_data(speciality, form_of_education, name_of_university):
         name_of_spec, specialisation, faculty, educational_program = education_list
     else:
         print("Error")
-    faculty = faculty.replace("\'", "`")
     educational_program = educational_program.replace("\'", "`")
+    educational_program = educational_program.replace('\"', '').strip()
+
+    faculty = faculty.replace("\'", "`")
+    faculty = faculty.replace('\"', '').strip()
+
+    specialisation = specialisation.replace("\'", "`")
+    specialisation = specialisation.replace('\"', '').strip()
+
+    name_of_spec = tree.xpath("//div/div[1]/div[2]/span/a[1]/text()")[0][4::]
+    name_of_spec = name_of_spec.replace("\'", "`")
+    name_of_spec = name_of_spec.replace('\"', '')
+    print(f"-{branch} : {name_of_spec}")
 
     offer_type = tree.xpath("//div/div[1]/div[2]/text()[5]")[0]
-    offer_type += tree.xpath("//div/div[1]/div[2]/text()[6]")[0]
+    offer_type += tree.xpath("//div/div[1]/div[2]/text()[6]")[0].strip()
+    offer_type = offer_type.replace("\'", "`")
+    offer_type = offer_type.replace('\"', '')
+
     term_of_study = tree.xpath("//div/div[1]/div[2]/text()[7]")[0]
     if term_of_study == "Скорочений курс":
         term_of_study = " 00.00.0000 - 00.00.0000"
     start_time_of_study = term_of_study[1:11]
     end_time_of_study = term_of_study[14:24]
-
     try:
         license_scope = tree.xpath("//div/div[1]/div[2]/text()[9]")[0]
     except:
@@ -125,26 +135,6 @@ def create_data(speciality, form_of_education, name_of_university):
     for i in specialitydic:
         temp += f"{i}:{specialitydic[i]} "
 
-    token = "dwhqiOdazumEh2Dy31-WCh_LSE6rINCMH_k94o5nzqo6sLrhgq0nslCI2auDlmaF1VCK8w."
-
-    bard = Bard(token)
-
-    first_prompt = (f"Go to the website {name_of_university}, go to the section {faculty} and describe the specialty"
-                    f"{speciality}"
-                    "according to these criteria:"
-                    "1. Find and write a description of the specialty, indicate what a specialist in this profession does."
-                    "Submit it in a detailed, comprehensive format, make it simple"
-                    "2. Describe the educational program of the specialty, what subjects it includes"
-                    "and what the student will be able to study in general."
-                    "3. What is the perspective for the career of this specialist in Ukraine and the world?"
-                    "Do not go beyond the criterias, do not write a conclusion.  Provide information in a neutral format,"
-                    "'from a bird's eye view', without advertising the university, also make it interesting,"
-                    "oriented to applicants and their parents. Response in Ukrainian")
-    short_response = str(bard.get_answer(first_prompt)['content'])
-    short_response = short_response.replace('\'', '`')
-    short_response = short_response.replace('*', '')
-    time.sleep(3)
-
     data = {
         "form_of_education": form_of_education,
         "educational_degree": educational_degree,
@@ -163,15 +153,14 @@ def create_data(speciality, form_of_education, name_of_university):
         "budget": budget,
         "avg_contract": avg_contract,
         "avg_budget": avg_budget,
-        "specialitydic": temp,
-        "short_response": short_response
+        "specialitydic": temp
     }
     return data
 
 
 def parse_university(url, name_of_university, i, db_decoder, mcursor, UniWave, region):
 
-    driver = webdriver.Firefox()
+    driver = webdriver.Chrome(options=options)
     driver.get(url)
     content = driver.page_source
     soup = BeautifulSoup(content, features="html.parser")
@@ -227,9 +216,8 @@ def parse_university(url, name_of_university, i, db_decoder, mcursor, UniWave, r
 
     res = []
 
-    table_name = f"ID{i}"
-
-    mcursor.execute(f"CREATE TABLE {table_name} (form_of_education VARCHAR(1000), educational_degree VARCHAR(1000),"
+    table_name = f"id{i}"
+    mcursor.execute(f"CREATE TABLE {table_name} (id int, form_of_education VARCHAR(1000), educational_degree VARCHAR(1000),"
                      f"branch VARCHAR(1000),major_branch VARCHAR(1000), number_of_spec VARCHAR(1000) ,"
                      f"name_of_spec VARCHAR(1000),"
                      f"specialisation VARCHAR(1000),"
@@ -238,26 +226,29 @@ def parse_university(url, name_of_university, i, db_decoder, mcursor, UniWave, r
                      f" License_scope VARCHAR(1000),"
                      f" contract VARCHAR(1000), budget VARCHAR(1000),avg_contract NUMERIC(5, 2),"
                      f"avg_budget NUMERIC(5, 2),"
-                     f"specialitydic VARCHAR(1000), short_response TEXT)"
+                     f"specialitydic VARCHAR(1000),"
+                     f"bardresponse TEXT)"
                      f"CHARSET=utf8")
-
     # Денна форма навчання
-
+    id = 0
     for speciality in specialities_den:
-        data = create_data(speciality, "Денна", name_of_university)
+        data = create_data(speciality, "Денна")
         res.append(data)
-        sql_table_insert(data, mcursor, table_name, UniWave)
+        sql_table_insert(data, mcursor, table_name, UniWave, id)
+        id += 1
     # Заочна форма навчання
 
     for speciality in specialities_zaoch:
-        data = create_data(speciality, "Заочна", name_of_university)
+        data = create_data(speciality, "Заочна")
         res.append(data)
-        sql_table_insert(data, mcursor, table_name, UniWave)
+        sql_table_insert(data, mcursor, table_name, UniWave, id)
+        id += 1
 
     for speciality in specialities_distance:
-        data = create_data(speciality, "Дистанційна", name_of_university)
+        data = create_data(speciality, "Дистанційна")
         res.append(data)
-        sql_table_insert(data, mcursor, table_name, UniWave)
+        sql_table_insert(data, mcursor, table_name, UniWave, id)
+        id += 1
 
     driver.close()
     db_decoder[table_name] = name_of_university
@@ -266,13 +257,13 @@ def parse_university(url, name_of_university, i, db_decoder, mcursor, UniWave, r
     UniWave.commit()
 
 
-def sql_table_insert(data, mcursor, table_name, UniWave):
-    mcursor.execute(f"INSERT INTO {table_name} (form_of_education, educational_degree, branch, major_branch,"
+def sql_table_insert(data, mcursor, table_name, UniWave, id):
+    mcursor.execute(f"INSERT INTO {table_name} (id, form_of_education, educational_degree, branch, major_branch,"
                      f" number_of_spec, name_of_spec, specialisation, faculty, educational_program, offer_type,"
                      f" start_time_of_study, end_time_of_study, license_scope, contract, budget, avg_contract,"
-                     f" avg_budget, specialitydic, short_response) VALUES ('{data['form_of_education']}', '{data['educational_degree']}', '{data['branch']}', '{data['major_branch']}',"
+                     f" avg_budget, specialitydic) VALUES ({id}, '{data['form_of_education']}', '{data['educational_degree']}', '{data['branch']}', '{data['major_branch']}',"
                      f" '{data['number_of_spec']}', '{data['name_of_spec']}', '{data['specialisation']}', '{data['faculty']}', '{data['educational_program']}', '{data['offer_type']}',"
                      f" '{data['start_time_of_study']}', '{data['end_time_of_study']}', '{data['license_scope']}', '{data['contract']}', '{data['budget']}', '{data['avg_contract']}',"
-                     f" '{data['avg_budget']}', '{data['specialitydic']}', '{data['short_response']}')")
+                     f" '{data['avg_budget']}', '{data['specialitydic']}')")
 
     UniWave.commit()
