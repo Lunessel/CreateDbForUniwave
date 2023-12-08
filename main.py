@@ -52,7 +52,7 @@ def get_university_by_region(url, region):
 
 
 def main():
-    driver = webdriver.Firefox()
+    driver = webdriver.Chrome(options=options)
     driver.get(baseUrl)
 
     content = driver.page_source

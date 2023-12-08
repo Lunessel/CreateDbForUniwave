@@ -227,8 +227,7 @@ def parse_university(url, name_of_university, i, db_decoder, mcursor, UniWave, r
                      f" contract VARCHAR(1000), budget VARCHAR(1000),avg_contract NUMERIC(5, 2),"
                      f"avg_budget NUMERIC(5, 2),"
                      f"specialitydic VARCHAR(1000),"
-                     f"bardresponse TEXT)"
-                     f"CHARSET=utf8")
+                     f"bardresponse TEXT)")
     # Денна форма навчання
     id = 0
     for speciality in specialities_den:
@@ -253,7 +252,7 @@ def parse_university(url, name_of_university, i, db_decoder, mcursor, UniWave, r
     driver.close()
     db_decoder[table_name] = name_of_university
     name_of_university = name_of_university.replace("\'", "")
-    mcursor.execute(f"INSERT INTO decoder (ID, NAME, REGION) VALUES ('{table_name}', '{name_of_university}', '{region}')")
+    mcursor.execute(f"INSERT INTO decoder (ID, NAME, REGION) VALUES ('{table_name}', '{name_of_university}', '{region}');")
     UniWave.commit()
 
 
@@ -264,6 +263,6 @@ def sql_table_insert(data, mcursor, table_name, UniWave, id):
                      f" avg_budget, specialitydic) VALUES ({id}, '{data['form_of_education']}', '{data['educational_degree']}', '{data['branch']}', '{data['major_branch']}',"
                      f" '{data['number_of_spec']}', '{data['name_of_spec']}', '{data['specialisation']}', '{data['faculty']}', '{data['educational_program']}', '{data['offer_type']}',"
                      f" '{data['start_time_of_study']}', '{data['end_time_of_study']}', '{data['license_scope']}', '{data['contract']}', '{data['budget']}', '{data['avg_contract']}',"
-                     f" '{data['avg_budget']}', '{data['specialitydic']}')")
+                     f" '{data['avg_budget']}', '{data['specialitydic']}');")
 
     UniWave.commit()
