@@ -31,9 +31,10 @@ def get_university_by_region(url, region):
     i = 0
     db_decoder = {}
     list_of_li = soup.find("ul", {"class": "section-search-result-list"}).find_all("li")
+    load_dotenv()
     UniWave = psycopg2.connect(os.getenv('DATABASE_URL'))
     mcursor = UniWave.cursor()
-    mcursor.execute(f"CREATE TABLE decoder(ID VARCHAR(100), NAME VARCHAR(1000), REGION VARCHAR(1000))")
+    mcursor.execute(f"CREATE TABLE decoder(ID VARCHAR(100), NAME VARCHAR(1000), REGION VARCHAR(1000));")
     UniWave.commit()
 
     for li in list_of_li:
@@ -51,8 +52,9 @@ def get_university_by_region(url, region):
 
 
 def main():
-    driver = webdriver.Chrome(options=options)
+    driver = webdriver.Firefox()
     driver.get(baseUrl)
+
     content = driver.page_source
     soup = BeautifulSoup(content, features="html.parser")
 
