@@ -1,8 +1,10 @@
 from selenium import webdriver
 from bs4 import BeautifulSoup
 from university import parse_university
-import mysql.connector
 from selenium.webdriver.chrome.options import Options
+import os
+import psycopg2
+from dotenv import load_dotenv
 
 
 options = Options()
@@ -29,14 +31,10 @@ def get_university_by_region(url, region):
     i = 0
     db_decoder = {}
     list_of_li = soup.find("ul", {"class": "section-search-result-list"}).find_all("li")
-    UniWave = mysql.connector.connect(
-        host="nuepp3ddzwtnggom.chr7pe7iynqr.eu-west-1.rds.amazonaws.com",
-        user="cwyk696zb0wfify6",
-        password="akcopeov5qknsns9",
-        database="jnmptwfsevd9h5ad"
-    )
+    UniWave = psycopg2.connect(os.getenv('DATABASE_URL'))
     mcursor = UniWave.cursor()
     mcursor.execute(f"CREATE TABLE decoder(ID VARCHAR(100), NAME VARCHAR(1000), REGION VARCHAR(1000))")
+    UniWave.commit()
 
     for li in list_of_li:
         a = li.find("a")
@@ -47,6 +45,8 @@ def get_university_by_region(url, region):
 
         parse_university(university_url, university_name, i, db_decoder, mcursor, UniWave, region)
 
+    mcursor.close()
+    UniWave.close()
     driver.close()
 
 
