@@ -7,13 +7,16 @@ options = Options()
 options.add_argument('--headless')
 
 
-def create_data(speciality, form_of_education):
+def create_data(speciality, form_of_education, name_of_university, region):
     specialisation = "Null"
     faculty = "Null"
     educational_program = "Null"
     tree = html.fromstring(str(speciality))
+
     educational_degree = tree.xpath("//div/div[1]/div[2]/b[1]/text()")[0]
     educational_degree += tree.xpath("//div/div[1]/div[2]/text()[2]")[0]
+    educational_degree = educational_degree.replace("\n", "")
+
     major_branch = None
     tech = ["Аграрні науки та продовольство",
             "Архітектура та будівництво",
@@ -44,6 +47,7 @@ def create_data(speciality, form_of_education):
               "Сфера обслуговування",
               "Воєнні науки, національна безпека, безпека державного кордону"]
     branch = tree.xpath("//div/div[1]/div[2]/span/text()[2]")[0][1::]
+    branch = branch.replace("\n", "")
     if branch in tech:
         major_branch = "Природничі та технічні науки"
     elif branch in social:
@@ -53,6 +57,7 @@ def create_data(speciality, form_of_education):
     else:
         print("Exception" + branch)
     number_of_spec = tree.xpath("//div/div[1]/div[2]/span/a[1]/text()")[0].split(' ')[0]
+    number_of_spec = number_of_spec.replace("\n", "")
     education_list = tree.xpath('//span[@class="search"]/text()')
     education_list = list(filter(lambda x: (x not in ['\n', ' ', '\xa0']), education_list))
     if len(education_list) == 2:
@@ -65,49 +70,65 @@ def create_data(speciality, form_of_education):
         print("Error")
     educational_program = educational_program.replace("\'", "`")
     educational_program = educational_program.replace('\"', '').strip()
+    educational_degree = educational_degree.replace("\n", "")
 
     faculty = faculty.replace("\'", "`")
     faculty = faculty.replace('\"', '').strip()
+    faculty = faculty.replace("\n", "")
 
     specialisation = specialisation.replace("\'", "`")
     specialisation = specialisation.replace('\"', '').strip()
+    specialisation = specialisation.replace("\n", "")
 
     name_of_spec = tree.xpath("//div/div[1]/div[2]/span/a[1]/text()")[0][4::]
     name_of_spec = name_of_spec.replace("\'", "`")
     name_of_spec = name_of_spec.replace('\"', '')
-    print(f"-{branch} : {name_of_spec}")
+    name_of_spec = name_of_spec.replace("\n", "")
 
     offer_type = tree.xpath("//div/div[1]/div[2]/text()[5]")[0]
     offer_type += tree.xpath("//div/div[1]/div[2]/text()[6]")[0].strip()
     offer_type = offer_type.replace("\'", "`")
     offer_type = offer_type.replace('\"', '')
+    offer_type = offer_type.replace("\n", "")
 
     term_of_study = tree.xpath("//div/div[1]/div[2]/text()[7]")[0]
+    term_of_study = term_of_study.replace("\n", "")
     if term_of_study == "Скорочений курс":
         term_of_study = " 00.00.0000 - 00.00.0000"
     start_time_of_study = term_of_study[1:11]
     end_time_of_study = term_of_study[14:24]
     try:
         license_scope = tree.xpath("//div/div[1]/div[2]/text()[9]")[0]
+        license_scope = license_scope.replace("\n", "")
     except:
         license_scope = 0
 
     try:
         contract = tree.xpath("//div/div[1]/div[2]/text()[10]")[0]
+        contract = contract.replace("\n", "")
+        if contract == "":
+            contract = 0
     except:
         contract = 0
+
     try:
-        budget = tree.xpath("//div/div[1]/div[2]/text()[14]")[0].split(' ')[1]
+        budget = tree.xpath("//div/div[1]/div[2]/text()[14]")[0]
+        budget = budget.replace(":", "").strip()
+        budget = budget.replace("\n", "")
+        if budget == "":
+            budget = 0
     except:
         budget = 0
 
     try:
         avg_budget = tree.xpath("//div/div[1]/div[2]/div[1]/b/text()")[0]
+        avg_budget = avg_budget.replace("\n", "")
     except:
         avg_budget = 0
 
     try:
         avg_contract = tree.xpath("//div/div[1]/div[2]/div[2]/b/text()")[0]
+        avg_contract = avg_contract.replace("\n", "")
     except:
         avg_contract = 0
 
@@ -136,6 +157,8 @@ def create_data(speciality, form_of_education):
         temp += f"{i}:{specialitydic[i]} "
 
     data = {
+        "name_of_university": name_of_university,
+        "region": region,
         "form_of_education": form_of_education,
         "educational_degree": educational_degree,
         "branch": branch,
@@ -155,6 +178,7 @@ def create_data(speciality, form_of_education):
         "avg_budget": avg_budget,
         "specialitydic": temp
     }
+
     return data
 
 
@@ -215,9 +239,14 @@ def parse_university(url, name_of_university, i, db_decoder, mcursor, UniWave, r
         pass
 
     res = []
+    name_of_university = name_of_university.replace("\'", "")
+    name_of_university = name_of_university.replace('\"', "")
+    region = region.replace("\'", "")
+    region = region.replace('\"', "")
 
     table_name = f"id{i}"
-    mcursor.execute(f"CREATE TABLE {table_name} (id int, form_of_education VARCHAR(1000), educational_degree VARCHAR(1000),"
+    mcursor.execute(f"CREATE TABLE {table_name} (id int, name_of_university VARCHAR(1000), region VARCHAR(1000),"
+                     f" form_of_education VARCHAR(1000), educational_degree VARCHAR(1000),"
                      f"branch VARCHAR(1000),major_branch VARCHAR(1000), number_of_spec VARCHAR(1000) ,"
                      f"name_of_spec VARCHAR(1000),"
                      f"specialisation VARCHAR(1000),"
@@ -231,36 +260,35 @@ def parse_university(url, name_of_university, i, db_decoder, mcursor, UniWave, r
     # Денна форма навчання
     id = 0
     for speciality in specialities_den:
-        data = create_data(speciality, "Денна")
+        data = create_data(speciality, "Денна", name_of_university, region)
         res.append(data)
         sql_table_insert(data, mcursor, table_name, UniWave, id)
         id += 1
     # Заочна форма навчання
 
     for speciality in specialities_zaoch:
-        data = create_data(speciality, "Заочна")
+        data = create_data(speciality, "Заочна", name_of_university, region)
         res.append(data)
         sql_table_insert(data, mcursor, table_name, UniWave, id)
         id += 1
 
     for speciality in specialities_distance:
-        data = create_data(speciality, "Дистанційна")
+        data = create_data(speciality, "Дистанційна", name_of_university, region)
         res.append(data)
         sql_table_insert(data, mcursor, table_name, UniWave, id)
         id += 1
 
     driver.close()
     db_decoder[table_name] = name_of_university
-    name_of_university = name_of_university.replace("\'", "")
     mcursor.execute(f"INSERT INTO decoder (ID, NAME, REGION) VALUES ('{table_name}', '{name_of_university}', '{region}');")
     UniWave.commit()
 
 
 def sql_table_insert(data, mcursor, table_name, UniWave, id):
-    mcursor.execute(f"INSERT INTO {table_name} (id, form_of_education, educational_degree, branch, major_branch,"
+    mcursor.execute(f"INSERT INTO {table_name} (id, name_of_university, region, form_of_education, educational_degree, branch, major_branch,"
                      f" number_of_spec, name_of_spec, specialisation, faculty, educational_program, offer_type,"
                      f" start_time_of_study, end_time_of_study, license_scope, contract, budget, avg_contract,"
-                     f" avg_budget, specialitydic) VALUES ({id}, '{data['form_of_education']}', '{data['educational_degree']}', '{data['branch']}', '{data['major_branch']}',"
+                     f" avg_budget, specialitydic) VALUES ({id}, '{data['name_of_university']}','{data['region']}','{data['form_of_education']}', '{data['educational_degree']}', '{data['branch']}', '{data['major_branch']}',"
                      f" '{data['number_of_spec']}', '{data['name_of_spec']}', '{data['specialisation']}', '{data['faculty']}', '{data['educational_program']}', '{data['offer_type']}',"
                      f" '{data['start_time_of_study']}', '{data['end_time_of_study']}', '{data['license_scope']}', '{data['contract']}', '{data['budget']}', '{data['avg_contract']}',"
                      f" '{data['avg_budget']}', '{data['specialitydic']}');")
